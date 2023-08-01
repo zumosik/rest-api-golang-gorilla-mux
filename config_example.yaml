@@ -1,5 +1,0 @@
-server:
-  log_level : "error"
-  bind_addr : ":8080"
-database:
-  url : ""

@@ -33,12 +33,13 @@ func (s *Server) Start() error {
 	s.ConfigureRouter()
 
 	s.l.Info("Starting server!")
+	s.l.Debug("Bind address: ", s.config.BindAddr)
 
-	return http.ListenAndServe(s.config.Server.BindAddr, s.router)
+	return http.ListenAndServe(s.config.BindAddr, s.router)
 }
 
 func (s *Server) ConfigureLogger() error {
-	lvl, err := log.ParseLevel(s.config.Server.LogLevel)
+	lvl, err := log.ParseLevel(s.config.LogLevel)
 	if err != nil {
 		return err
 	}
