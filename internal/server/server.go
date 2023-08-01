@@ -7,6 +7,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
+	"github.com/zumosik/rest-api-golang-gorilla-mux/internal/store"
 
 	"github.com/gorilla/mux"
 )
@@ -15,6 +16,7 @@ type Server struct {
 	config *Config
 	l      *log.Logger
 	router *mux.Router
+	store  *store.Store
 }
 
 func New(config *Config) *Server {
@@ -32,10 +34,24 @@ func (s *Server) Start() error {
 
 	s.ConfigureRouter()
 
+	if err := s.ConfigureStore(); err != nil {
+		return err
+	}
+
 	s.l.Info("Starting server!")
 	s.l.Debug("Bind address: ", s.config.BindAddr)
 
 	return http.ListenAndServe(s.config.BindAddr, s.router)
+}
+
+func (s *Server) ConfigureStore() error {
+	st := store.New(s.config.Store)
+	if err := st.Open(); err != nil {
+		return err
+	}
+
+	s.store = st
+	return nil
 }
 
 func (s *Server) ConfigureLogger() error {
