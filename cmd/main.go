@@ -4,7 +4,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/zumosik/rest-api-golang-gorilla-mux/internal/server"
+	"github.com/zumosik/rest-api-golang-gorilla-mux/internal/apiserver"
 
 	"github.com/BurntSushi/toml"
 )
@@ -20,15 +20,14 @@ func init() {
 func main() {
 	flag.Parse()
 
-	config := server.NewConfig()
+	config := apiserver.NewConfig()
 
 	_, err := toml.DecodeFile(configPath, config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	s := server.New(config)
-	if err := s.Start(); err != nil {
+	if err := apiserver.Start(config); err != nil {
 		log.Fatal(err)
 	}
 
