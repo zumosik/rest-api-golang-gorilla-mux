@@ -1,22 +1,27 @@
 package server
 
 import (
+	"io"
+	"net/http"
 	"os"
 
 	log "github.com/sirupsen/logrus"
-
 	prefixed "github.com/x-cray/logrus-prefixed-formatter"
+
+	"github.com/gorilla/mux"
 )
 
 type Server struct {
 	config *Config
 	l      *log.Logger
+	router *mux.Router
 }
 
 func New(config *Config) *Server {
 	return &Server{
 		config: config,
 		l:      log.New(),
+		router: mux.NewRouter(),
 	}
 }
 
@@ -25,10 +30,11 @@ func (s *Server) Start() error {
 		return err
 	}
 
-	s.l.Info("Starting server!")
-	s.l.Error("ERROR")
+	s.ConfigureRouter()
 
-	return nil
+	s.l.Info("Starting server!")
+
+	return http.ListenAndServe(s.config.Server.BindAddr, s.router)
 }
 
 func (s *Server) ConfigureLogger() error {
@@ -48,4 +54,14 @@ func (s *Server) ConfigureLogger() error {
 	}
 
 	return nil
+}
+
+func (s *Server) ConfigureRouter() {
+	s.router.HandleFunc("/hello", s.handleHello())
+}
+
+func (s *Server) handleHello() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "Hello")
+	}
 }
