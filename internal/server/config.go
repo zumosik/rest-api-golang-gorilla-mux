@@ -14,8 +14,25 @@ type Config struct {
 		LogLevel string `yaml:"log_level"`
 	} `yaml:"server"`
 	Database struct {
-		Url string `ymal:"url"`
+		Url string `yaml:"url"`
 	} `yaml:"database"`
+}
+
+func TestConfig() *Config {
+	return &Config{
+		Server: struct {
+			BindAddr string "yaml:\"bind_addr\""
+			LogLevel string "yaml:\"log_level\""
+		}{
+			BindAddr: ":1234",
+			LogLevel: "debug",
+		},
+		Database: struct {
+			Url string "yaml:\"url\""
+		}{
+			Url: "",
+		},
+	}
 }
 
 func NewConfig(configPath string) (*Config, error) {

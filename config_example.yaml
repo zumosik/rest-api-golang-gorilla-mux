@@ -1,5 +1,5 @@
 server:
   log_level : "error"
-  port : "8080"
+  bind_addr : ":8080"
 database:
   url : ""
