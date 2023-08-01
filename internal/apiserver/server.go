@@ -4,13 +4,11 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 	"github.com/zumosik/rest-api-golang-gorilla-mux/internal/store"
 )
 
 type server struct {
 	router *mux.Router
-	l      *log.Logger
 	store  store.Store
 }
 
@@ -18,7 +16,6 @@ func newServer(store store.Store) *server {
 	s := &server{
 		store:  store,
 		router: mux.NewRouter(),
-		l:      log.New(),
 	}
 
 	s.configureRouter()
