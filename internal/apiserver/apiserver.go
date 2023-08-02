@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 
+	"github.com/gorilla/sessions"
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 
@@ -16,10 +17,13 @@ func Start(config *Config) error {
 		return err
 	}
 
+	log.Info("Connected to db!")
+
 	defer db.Close()
 
 	store := sqlstore.New(db)
-	srv := newServer(store)
+	sessionStore := sessions.NewCookieStore([]byte(config.SessionKey))
+	srv := newServer(store, sessionStore)
 
 	log.Info("Starting server!")
 	log.Debug("Address: ", config.BindAddr)
