@@ -62,9 +62,10 @@ func (s *server) configureRouter() {
 	s.router.HandleFunc("/session", s.handleSessionCreate()).Methods("POST")
 
 	// private routes
-	private := s.router.PathPrefix("/private").Subrouter()
+	private := s.router.PathPrefix("/link").Subrouter()
 	private.Use(s.authenticateUser)
-	private.HandleFunc("/whoami", s.handleWhoami()).Methods("GET")
+	private.HandleFunc("/new", s.handleLinkCreate()).Methods("POST")
+	private.HandleFunc("/get", s.handleLinkGet()).Methods("GET")
 }
 
 // Routes

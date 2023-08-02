@@ -73,11 +73,11 @@ func (s *server) handleSessionCreate() http.HandlerFunc {
 	}
 }
 
-func (s *server) handleWhoami() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		s.respond(w, r, http.StatusOK, r.Context().Value(CtxKeyUser).(*model.User))
-	}
-}
+// func (s *server) handleWhoami() http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		s.respond(w, r, http.StatusOK, r.Context().Value(CtxKeyUser).(*model.User))
+// 	}
+// }
 
 // Middlewares
 func (s *server) authenticateUser(next http.Handler) http.Handler {
