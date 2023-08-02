@@ -49,7 +49,7 @@ func configureLogger(level string) error {
 
 	log.SetFormatter(&prefixed.TextFormatter{
 		DisableColors:   false,
-		TimestampFormat: "2006-01-02 15:04:05",
+		TimestampFormat: "15:04:05",
 		FullTimestamp:   true,
 		ForceFormatting: true,
 	})
