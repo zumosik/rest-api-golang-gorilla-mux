@@ -1,29 +1,40 @@
 package apiserver
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	log "github.com/sirupsen/logrus"
 	"github.com/zumosik/rest-api-golang-gorilla-mux/internal/model"
 	"github.com/zumosik/rest-api-golang-gorilla-mux/internal/store"
 )
 
 const (
-	sessionName = "userid"
+	sessionName        = "userid"
+	CtxKeyUser  ctxKey = iota
+	CtxKeyReqID
 )
 
 var (
-	errIncorrectEmailOrPassword = errors.New("Incorrect email or password")
-	errInvalidData              = errors.New("Invalid data")
+	errIncorrectEmailOrPassword = errors.New("incorrect email or password")
+	errInvalidData              = errors.New("invalid data")
+	errNotAuthenticated         = errors.New("not authenticated")
 )
+
+type ctxKey int
 
 type server struct {
 	router       *mux.Router
 	store        store.Store
 	sessionStore sessions.Store
+	logger       *log.Logger
 }
 
 func newServer(store store.Store, sessionStore sessions.Store) *server {
@@ -31,6 +42,7 @@ func newServer(store store.Store, sessionStore sessions.Store) *server {
 		store:        store,
 		router:       mux.NewRouter(),
 		sessionStore: sessionStore,
+		logger:       log.New(),
 	}
 
 	s.configureRouter()
@@ -43,8 +55,17 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *server) configureRouter() {
+	s.router.Use(s.setRequestID)
+	s.router.Use(s.logRequest)
+	s.router.Use(handlers.CORS(handlers.AllowedOrigins([]string{"*"})))
+
 	s.router.HandleFunc("/users", s.handleUsersCreate()).Methods("POST")
 	s.router.HandleFunc("/session", s.handleSessionCreate()).Methods("POST")
+
+	// private routes
+	private := s.router.PathPrefix("/private").Subrouter()
+	private.Use(s.authenticateUser)
+	private.HandleFunc("/whoami", s.handleWhoami()).Methods("GET")
 }
 
 func (s *server) handleUsersCreate() http.HandlerFunc {
@@ -98,17 +119,76 @@ func (s *server) handleSessionCreate() http.HandlerFunc {
 		session, err := s.sessionStore.Get(r, sessionName)
 		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		session.Values["user_id"] = u.ID
 		if err := s.sessionStore.Save(r, w, session); err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		s.respond(w, r, http.StatusOK, nil)
 	}
 }
 
+func (s *server) handleWhoami() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.respond(w, r, http.StatusOK, r.Context().Value(CtxKeyUser).(*model.User))
+	}
+}
+
+// Middlewares
+func (s *server) authenticateUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session, err := s.sessionStore.Get(r, sessionName)
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		id, ok := session.Values["user_id"]
+		if !ok {
+			s.error(w, r, http.StatusUnauthorized, errNotAuthenticated)
+			return
+		}
+
+		u, err := s.store.User().Find(id.(int))
+		if err != nil {
+			s.error(w, r, http.StatusUnauthorized, errNotAuthenticated)
+			return
+		}
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), CtxKeyUser, u)))
+	})
+}
+
+func (s *server) setRequestID(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := uuid.New().String()
+		w.Header().Set("X-Request-ID", id)
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), CtxKeyReqID, id)))
+	})
+}
+
+func (s *server) logRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		logger := log.WithFields(log.Fields{
+			"remote_addr": r.RemoteAddr,
+			"request_id":  r.Context().Value(CtxKeyReqID),
+		})
+		logger.Debugf("Started %s %s", r.Method, r.RequestURI)
+
+		start := time.Now()
+		rw := &responseWriter{w, http.StatusOK}
+		next.ServeHTTP(rw, r)
+
+		logger.Debugf("Completed with %d %s in %v", rw.code, http.StatusText(rw.code), time.Now().Sub(start))
+	})
+}
+
+// Functions
 func (s *server) error(w http.ResponseWriter, r *http.Request, code int, err error) {
 	s.respond(w, r, code, map[string]string{"error": err.Error()})
 }
