@@ -10,6 +10,7 @@ import (
 type Store struct {
 	db       *sql.DB
 	userRepo *UserRepository
+	linkRepo *LinkRepository
 }
 
 func New(db *sql.DB) *Store {
@@ -28,4 +29,16 @@ func (s *Store) User() store.UserRepository {
 	}
 
 	return s.userRepo
+}
+
+func (s *Store) Link() store.LinkRepository {
+	if s.linkRepo != nil {
+		return s.linkRepo
+	}
+
+	s.linkRepo = &LinkRepository{
+		store: s,
+	}
+
+	return s.linkRepo
 }

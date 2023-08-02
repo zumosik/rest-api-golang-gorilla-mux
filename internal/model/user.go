@@ -17,6 +17,7 @@ func (u *User) Validate() error {
 		validation.Field(&u.Email, validation.Required, is.Email),
 		validation.Field(&u.Password, validation.Required, validation.Length(6, 100)),
 	)
+
 }
 
 func (u *User) BeforeCreate() error {

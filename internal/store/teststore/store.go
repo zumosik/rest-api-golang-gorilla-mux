@@ -7,6 +7,7 @@ import (
 
 type Store struct {
 	userRepository *UserRepository
+	linkRepo       *LinkRepository
 }
 
 func New() *Store {
@@ -24,4 +25,17 @@ func (s *Store) User() store.UserRepository {
 	}
 
 	return s.userRepository
+}
+
+func (s *Store) Link() store.LinkRepository {
+	if s.linkRepo != nil {
+		return s.linkRepo
+	}
+
+	s.linkRepo = &LinkRepository{
+		store: s,
+		links: make(map[int]*model.Link),
+	}
+
+	return s.linkRepo
 }

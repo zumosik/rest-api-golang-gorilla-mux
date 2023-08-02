@@ -7,3 +7,8 @@ type UserRepository interface {
 	FindByEmail(string) (*model.User, error)
 	Find(int) (*model.User, error)
 }
+
+type LinkRepository interface {
+	FindByUser(u *model.User) ([]*model.Link, error)
+	Create(link *model.Link) error
+}
